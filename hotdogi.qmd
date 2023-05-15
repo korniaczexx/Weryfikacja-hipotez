@@ -1,0 +1,83 @@
+---
+title: "Weryfikacja hipotez"
+author: "Monika Korniak"
+format: html
+editor: visual
+---
+
+### Weryfikacja hipotezy, że hot-dogi wołowe i drobiowe są tak samo kaloryczne
+
+Zadanie sprowadza się do sprawdzenia, czy średnie kaloryczności hot-dogów wołowych i drobiowych są sobie równe. Dobierając odpowiedni model, należy zwrócić uwagę na to, że:
+
+-   mamy dwie niezależne próby proste
+
+-   liczebność prób jest mała
+
+-   nie wiemy, czy odchylenia standardowe są równe (należy to sprawdzić)
+
+**Weryfikacja hipotezy, że wariancje kaloryczności obu rodzai hot-dogów są równe**
+
+Przed przeprowadzeniem testu sprawdzamy, czy dane pochodzą z rozkładu normalnego
+
+```{r}
+library(readxl)
+library(stats)
+dane <- read_excel("hot_dog.xlsx")
+t1 <- shapiro.test(dane$wołowe)
+t2 <- shapiro.test(dane$drobiowe)
+
+```
+
+Na podstawie testu Shapiro Wilka wnioskujemy, że możemy przyjąć że dane pochodzą z rozkładu normalnego. P_value wynosi odpowiednio `r t1$p.value` i `r t2$p.value` obie wartości są \>0.05. Więc nie mamy podstaw do odrzucenia hipotezy o normalności rozkładu.
+
+-   Dane pochodzą z rozkładu normalnego, więc przeprowadzam test *Fishera-Snedecora*
+
+$$
+H_0: \sigma_1^2=\sigma_2^2
+$$ $$
+H_1: \sigma_1^2 \neq \sigma_2^2
+$$
+
+```{r}
+library(readxl)
+alfa=0.05
+dane <- read_excel("hot_dog.xlsx")
+n1 <-length(na.omit(dane$wołowe))
+n2 <- length(na.omit(dane$drobiowe))
+sd1 <- sd(dane$wołowe)
+sd2 <- sd(na.omit(dane$drobiowe))
+F= (sd1^2)/ (sd2^2)
+kon1 <- qf(alfa/2, n1-1, n2-1)
+kon2 <- qf(1-alfa/2, n1-1, n2-1)
+p_value <- 2 * min(1 - pf(F, n1-1, n2-1), pf(F, n1-1, n2-1))
+```
+
+Obszar krytyczny to przedział (0, `r kon1` )$\cup$ ( `r kon2` , $+\infty)$ sprawdźmy czy statystyka testowa F= `r F` należy do przedziału, odpowiedz brzmi `r (F< kon1) | (F>kon2)` . Nie mamy więc podstaw by odrzucić hipotezę, że wariancje kaloryczności obu hot-dogów są równe. Również wartość p= `r p_value` \> 0.05 wskazuje na fakt, że nie mamy podstaw do odrzucenia hipotezy $H_0$.
+
+**Weryfikacja hipotezy, że średnie kaloryczności hot-dogów są sobie równe**
+
+-   Na podstawie powyższego testu przyjmujemy, że odchylenia standardowe są równe
+
+$$
+H_0: \mu_1 = \mu_2
+$$
+
+$$
+H_1: \mu_1 \ne \mu_2 \
+$$
+
+```{r}
+alfa <- 0.05
+mean1 <- mean(dane$wołowe)
+mean2 <- mean(na.omit(dane$drobiowe))
+sp <- sqrt(((sd1^2)*(n1-1) + (sd2^2)*(n2-1))/(n1+n2-2))
+T1 <- (mean1 - mean2)/ (sp* sqrt((1/n1) + (1/n2)))
+kon1 <- -pt(1-alfa/2, n1-n2-2)
+kon2 <- pt(1-alfa/2, n1-n2-2)
+pvalue <- 2*(1- pt(T1, n1-n2-1))
+
+```
+
+Sprawdźmy czy statystyka testowa T1= `r T1` zawiera się w obszarze krytycznym($-\infty$, `r kon1`) $\cup$ (`r kon2`, $\infty)$ odpowiedź brzmi `r (T1 < kon1) || (T1 > kon2)`. Zatem mamy podstaw do odrzucenia hipotezy zerowej. Również wartość pvalue= `r pvalue` \< 0.05 potwierdza, że powinniśmy odrzucić hipotezę zerową, na rzecz hipotezy alternatywnej.
+
+*Podsumowując, na podstawie dostępnych danych możemy przyjąć, że hot-dogi wołowe i drobiowe nie są tak samo kaloryczne.*
